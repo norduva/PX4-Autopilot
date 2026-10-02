@@ -1,0 +1,113 @@
+# Elarion H7 firmware build and release.
+#
+# The upstream PX4 workflows are removed on this fork; this is the only CI.
+#
+# Every branch push builds firmware + bootloader and keeps them as workflow
+# artifacts for 7 days. Pushing a release tag also creates a draft GitHub
+# Release with the files attached.
+#
+# Release tags use PX4's custom version format, v<PX4 version>-<Elarion version>,
+# e.g. v1.18.0-1.0.0 or v1.18.0-1.1.0-rc1. The firmware reports that version to
+# QGroundControl. Upstream PX4 tags (v1.18.0, v1.18.0-rc1, ...) do not match
+# the trigger, so pushing them never starts a release.
+
+name: Elarion firmware
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+.[0-9]+*'
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  workflow_dispatch:
+
+# A newer push to the same branch cancels the running build.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build elarion_h7
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history and tags: PX4 derives its version from git describe.
+          fetch-depth: 0
+
+      - name: Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - name: Cache - ccache
+        uses: actions/cache@v5
+        with:
+          path: ~/.ccache
+          key: ccache-elarion_h7-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ccache-elarion_h7-${{ github.ref_name }}-
+            ccache-elarion_h7-main-
+            ccache-elarion_h7-
+
+      - name: Cache - Configure ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "max_size = 400M" >> ~/.ccache/ccache.conf
+          echo "hash_dir = false" >> ~/.ccache/ccache.conf
+          echo "compiler_check = content" >> ~/.ccache/ccache.conf
+          ccache -z
+
+      - name: Build firmware
+        run: make elarion_h7_default
+
+      - name: Build bootloader
+        run: make elarion_h7_bootloader
+
+      - name: ccache stats
+        run: ccache -s
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          cp build/elarion_h7_default/elarion_h7_default.px4 artifacts/
+          cp build/elarion_h7_default/elarion_h7_default.elf artifacts/
+          cp build/elarion_h7_bootloader/elarion_h7_bootloader.bin artifacts/
+          cp build/elarion_h7_bootloader/elarion_h7_bootloader.elf artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: elarion_h7_firmware
+          path: artifacts/
+          retention-days: 7
+
+  release:
+    name: Draft GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: elarion_h7_firmware
+          path: artifacts/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+          files: artifacts/*
