@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * Board internal definitions
+ * Elarion H7 internal definitions
  */
 
 #pragma once
@@ -53,17 +53,12 @@
  * Definitions
  ****************************************************************************************************/
 
+/* LED: one blue LED, cathode on PE3 (active low) */
 
+#define GPIO_nLED_BLUE          /* PE3 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
 
-/* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
-
-#  define GPIO_nLED_RED         /* PE5   */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
-#  define GPIO_nLED_GREEN       /* PE6   */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
-#  define GPIO_nLED_BLUE        /* PE4   */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
-
-#  define BOARD_HAS_CONTROL_STATUS_LEDS      1
-#  define BOARD_OVERLOAD_LED     LED_RED
-#  define BOARD_ARMED_STATE_LED  LED_BLUE
+#define BOARD_HAS_CONTROL_STATUS_LEDS      1
+#define BOARD_ARMED_STATE_LED  LED_BLUE
 
 
 /*
@@ -74,58 +69,80 @@
  */
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
-#define SYSTEM_ADC_BASE STM32_ADC1_BASE
 #define ADC1_CH(n)                  (n)
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 #define PX4_ADC_GPIO  \
 	/* PC0  */  GPIO_ADC123_INP10, \
-	/* PC1  */  GPIO_ADC123_INP11
-
+	/* PC1  */  GPIO_ADC123_INP11, \
+	/* PA4  */  GPIO_ADC12_INP18, \
+	/* PA7  */  GPIO_ADC12_INP7, \
+	/* PC4  */  GPIO_ADC12_INP4, \
+	/* PC5  */  GPIO_ADC12_INP8
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 #define ADC_BATTERY_VOLTAGE_CHANNEL     /* PC0  */  ADC1_CH(10)
-#define ADC_BATTERY_CURRENT_CHANNEL     /* PC1  */  ADC1_CH(11)
-
+#define ADC_BATTERY_CURRENT_CHANNEL     /* PC1  */  ADC1_CH(11) /* also on the ESC connector (CUR) */
+#define ADC_BATTERY2_VOLTAGE_CHANNEL    /* PA4  */  ADC1_CH(18)
+#define ADC_BATTERY2_CURRENT_CHANNEL    /* PA7  */  ADC1_CH(7)  /* CU2 pad */
+#define ADC_AIRSPEED_IN_CHANNEL         /* PC4  */  ADC1_CH(4)  /* AirS pad */
+#define ADC_RSSI_IN_CHANNEL             /* PC5  */  ADC1_CH(8)  /* RS pad */
 
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
-	 (1 << ADC_BATTERY_CURRENT_CHANNEL))
-
-
-/* Define Battery 1 Voltage Divider and A per V
- */
-
-// #define BOARD_BATTERY1_V_DIV         (11.0f)     /* measured with the provided PM board */
-// #define BOARD_BATTERY1_A_PER_V       (40.0f)
-// #define BOARD_BATTERY2_V_DIV         (11.0f)     /* measured with the provided PM board */
+	 (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
+	 (1 << ADC_BATTERY2_VOLTAGE_CHANNEL) | \
+	 (1 << ADC_BATTERY2_CURRENT_CHANNEL) | \
+	 (1 << ADC_AIRSPEED_IN_CHANNEL) | \
+	 (1 << ADC_RSSI_IN_CHANNEL))
 
 
 /* PWM
+ *
+ * 8 motor outputs (ESC connector 1-4, S5-S8 pads), 2 servo outputs (S9, S10 pads)
+ * and the LED pad (PA8).
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   10
+#define DIRECT_PWM_OUTPUT_CHANNELS   11
+
+#define BOARD_NUM_IO_TIMERS 5
+
+
+/* Tone alarm output: passive buzzer switched by an N-MOSFET on PA15 (active high) */
+
+#define TONE_ALARM_TIMER        2  /* Timer 2 */
+#define TONE_ALARM_CHANNEL      1  /* PA15 GPIO_TIM2_CH1OUT_2 */
+
+#define GPIO_BUZZER_1           /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
+
+#define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
+#define GPIO_TONE_ALARM         GPIO_TIM2_CH1OUT_2
+
+
+/* Video
+ *
+ * VOUT1_EN switches the VOUT1 power output (BATT or 12V, selected by JP1). It is off at boot.
+ * VIDEO_SELECT picks the analog camera fed to the OSD: low = CAM1, high = CAM2.
+ * Both can be driven from the console with the gpio command.
+ */
+
+#define GPIO_VOUT1_EN           /* PC12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN12)
+#define GPIO_VIDEO_SELECT       /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
 
 /* USB OTG FS
  *
- * PA8  OTG_FS_VBUS VBUS sensing
+ * VBUS is not routed to the MCU (PA9 is USART1 TX), so the board reports USB as always
+ * connected; see board_read_VBUS_state() in usb.c.
  */
-
-#define GPIO_OTGFS_VBUS         /* PA8 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN8)
 
 
 /* High-resolution timer */
-#define HRT_TIMER               2  /* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 3 */
+#define HRT_TIMER               8  /* use timer8 for the HRT */
+#define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
 
-/* RC Serial port */
-#define RC_SERIAL_PORT          "/dev/ttyS4"
-#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
-
-/* SD Card */
-#define SDIO_SLOTNO             0  /* Only one slot */
-#define SDIO_MINOR              0
+/* Storage: GD25Q128 / W25Q128 flash or microSD card, sharing SPI3 and the PC11 chip select */
+#define BOARD_STORAGE_SPI_BUS   3
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -133,16 +150,19 @@
 /* This board provides the board_on_reset interface */
 #define BOARD_HAS_ON_RESET 1
 
+/* Parameters are stored in the last 128 KiB sector of the internal flash */
+#define FLASH_BASED_PARAMS
+
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO, \
 		GPIO_CAN1_TX, \
 		GPIO_CAN1_RX, \
+		GPIO_TONE_ALARM_IDLE, \
+		GPIO_VOUT1_EN, \
+		GPIO_VIDEO_SELECT, \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-
-
-#define BOARD_NUM_IO_TIMERS 4
 
 
 __BEGIN_DECLS
@@ -160,16 +180,6 @@ __BEGIN_DECLS
 /****************************************************************************************************
  * Public Functions
  ****************************************************************************************************/
-
-/****************************************************************************
- * Name: stm32_sdio_initialize
- *
- * Description:
- *   Initialize SDIO-based MMC/SD card support
- *
- ****************************************************************************/
-
-int stm32_sdio_initialize(void);
 
 /****************************************************************************************************
  * Name: stm32_spiinitialize

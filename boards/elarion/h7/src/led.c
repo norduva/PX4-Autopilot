@@ -64,9 +64,10 @@ __END_DECLS
 
 #  define xlat(p) (p)
 static uint32_t g_ledmap[] = {
-	GPIO_nLED_GREEN,   // Indexed by BOARD_LED_GREEN
-	GPIO_nLED_BLUE,    // Indexed by BOARD_LED_BLUE
-	GPIO_nLED_RED,     // Indexed by BOARD_LED_RED
+	GPIO_nLED_BLUE,    // Indexed by LED_BLUE
+	0,                 // Indexed by LED_RED / LED_AMBER, not fitted
+	0,                 // Indexed by LED_SAFETY, not fitted
+	0,                 // Indexed by LED_GREEN, not fitted
 };
 
 __EXPORT void led_init(void)
@@ -82,7 +83,7 @@ __EXPORT void led_init(void)
 static void phy_set_led(int led, bool state)
 {
 	/* Drive Low to switch on */
-	if (g_ledmap[led] != 0) {
+	if (led >= 0 && led < (int)(sizeof(g_ledmap) / sizeof(g_ledmap[0])) && g_ledmap[led] != 0) {
 		stm32_gpiowrite(g_ledmap[led], !state);
 	}
 }
@@ -90,7 +91,7 @@ static void phy_set_led(int led, bool state)
 static bool phy_get_led(int led)
 {
 	/* If Low it is on */
-	if (g_ledmap[led] != 0) {
+	if (led >= 0 && led < (int)(sizeof(g_ledmap) / sizeof(g_ledmap[0])) && g_ledmap[led] != 0) {
 		return !stm32_gpioread(g_ledmap[led]);
 	}
 

@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/px4_fmu-v6u/include/board.h
+ * boards/elarion/h7/nuttx-config/include/board.h
  *
  *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
  *   Authors: David Sidrane <david.sidrane@nscdg.com>
@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_MICOAIR743_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_MICOAIR743_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_ELARION_H7_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_ELARION_H7_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -48,7 +48,6 @@
 #endif
 
 #include "stm32_rcc.h"
-#include "stm32_sdmmc.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -57,15 +56,16 @@
 /* Clocking *************************************************************************/
 /* The Elarion H7 board provides the following clock sources:
  *
- *   X1: 8 MHz crystal for HSE
+ *   Y1: 8 MHz active oscillator driving OSC_IN (OSC_OUT unconnected)
  *
  * So we have these clock source available within the STM32
  *
  *   HSI: 64 MHz RC factory-trimmed
- *   HSE:  8 MHz crystal for HSE
+ *   HSE:  8 MHz external clock, HSE bypass mode
  */
 
 #define STM32_BOARD_XTAL        8000000ul
+#define STM32_HSEBYP_ENABLE
 
 #define STM32_HSI_FREQUENCY     16000000ul
 #define STM32_LSI_FREQUENCY     32000
@@ -278,32 +278,8 @@
 
 #define BOARD_FLASH_WAITSTATES 2
 
-/* SDMMC definitions ********************************************************/
-
-/* Init 480kHz, freq = PLL1Q/(2*div)  div =  PLL1Q/(2*freq) */
-
-#define STM32_SDMMC_INIT_CLKDIV     (300 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-
-/* 20 MHz Max for now - more reliable on some boards than 25 MHz
- * 20 MHz = PLL1Q/(2*div), div =  PLL1Q/(2*freq), div = 6 = 240 / 40
- */
-
-#if defined(CONFIG_STM32H7_SDMMC_XDMA) || defined(CONFIG_STM32H7_SDMMC_IDMA)
-#  define STM32_SDMMC_MMCXFR_CLKDIV   (6 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-#else
-#  define STM32_SDMMC_MMCXFR_CLKDIV   (100 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-#endif
-#if defined(CONFIG_STM32H7_SDMMC_XDMA) || defined(CONFIG_STM32H7_SDMMC_IDMA)
-#  define STM32_SDMMC_SDXFR_CLKDIV    (6 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-#else
-#  define STM32_SDMMC_SDXFR_CLKDIV    (100 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-#endif
-
-#define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
-
 /* LED definitions ******************************************************************/
-/* The board has two, LED_GREEN a Green LED and LED_BLUE a Blue LED,
- * that can be controlled by software.
+/* The board has one blue LED (PE3, active low) that can be controlled by software.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
  * The following definitions are used to access individual LEDs.
@@ -312,99 +288,70 @@
 /* LED index values for use with board_userled() */
 
 #define BOARD_LED1        0
-#define BOARD_LED2        1
-#define BOARD_LED3        2
-#define BOARD_NLEDS       3
+#define BOARD_NLEDS       1
 
-#define BOARD_LED_RED     BOARD_LED1
-#define BOARD_LED_GREEN   BOARD_LED2
-#define BOARD_LED_BLUE    BOARD_LED3
+#define BOARD_LED_BLUE    BOARD_LED1
 
 /* LED bits for use with board_userled_all() */
 
 #define BOARD_LED1_BIT    (1 << BOARD_LED1)
-#define BOARD_LED2_BIT    (1 << BOARD_LED2)
-#define BOARD_LED3_BIT    (1 << BOARD_LED3)
-
-/* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
- * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
- * events as follows:
- *
- *
- *   SYMBOL                     Meaning                      LED state
- *                                                        Red   Green Blue
- *   ----------------------  --------------------------  ------ ------ ----*/
-
-#define LED_STARTED        0 /* NuttX has been started   OFF    OFF   OFF  */
-#define LED_HEAPALLOCATE   1 /* Heap has been allocated  OFF    OFF   ON   */
-#define LED_IRQSENABLED    2 /* Interrupts enabled       OFF    ON    OFF  */
-#define LED_STACKCREATED   3 /* Idle stack created       OFF    ON    ON   */
-#define LED_INIRQ          4 /* In an interrupt          N/C    N/C   GLOW */
-#define LED_SIGNAL         5 /* In a signal handler      N/C    GLOW  N/C  */
-#define LED_ASSERTION      6 /* An assertion failed      GLOW   N/C   GLOW */
-#define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
-#define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
-
-/* Thus if the Green LED is statically on, NuttX has successfully booted and
- * is, apparently, running normally.  If the Red LED is flashing at
- * approximately 2Hz, then a fatal error has been detected and the system
- * has halted.
- */
 
 /* Alternate function pin selections ************************************************/
 
-#define GPIO_USART1_RX   GPIO_USART1_RX_2   /* PA10 */
+#define GPIO_USART1_RX   GPIO_USART1_RX_2   /* PA10 TELEM1 (HD pads) */
 #define GPIO_USART1_TX   GPIO_USART1_TX_2   /* PA9  */
 
-#define GPIO_USART2_RX   GPIO_USART2_RX_1   /* PA3  */
-#define GPIO_USART2_TX   GPIO_USART2_TX_1   /* PA2  */
+#define GPIO_USART2_RX   GPIO_USART2_RX_2   /* PD6  TELEM3 (R2/T2 pads) */
+#define GPIO_USART2_TX   GPIO_USART2_TX_2   /* PD5  */
 
-#define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9  */
+#define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9  GPS1 (Extra connector) */
 #define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8  */
 
-#define GPIO_UART4_RX    GPIO_UART4_RX_2    /* PA1  */
-#define GPIO_UART4_TX    GPIO_UART4_TX_2    /* PA0  */
+#define GPIO_UART4_RX    GPIO_UART4_RX_3    /* PB8  TELEM4 (ESC telemetry) */
+#define GPIO_UART4_TX    GPIO_UART4_TX_3    /* PB9  */
 
-#define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7  */
+#define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7  UART6 (VTX connector) */
 #define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
 
-#define GPIO_UART7_RX    GPIO_UART7_RX_3    /* PE7  */
+#define GPIO_UART7_RX    GPIO_UART7_RX_3    /* PE7  RC (RX connector) */
 #define GPIO_UART7_TX    GPIO_UART7_TX_3    /* PE8  */
 
-
-#define GPIO_UART8_RX    GPIO_UART8_RX_1    /* PE0  */
+#define GPIO_UART8_RX    GPIO_UART8_RX_1    /* PE0  TELEM2 (SBC connector) */
 #define GPIO_UART8_TX    GPIO_UART8_TX_1    /* PE1  */
-
 
 /* CAN
  *
- * CAN1 is routed to transceiver.
+ * CAN1 is routed to the MCP2544FD transceiver.
  */
 
-#define GPIO_CAN1_RX     GPIO_CAN1_RX_2      /* PB8  */
-#define GPIO_CAN1_TX     GPIO_CAN1_TX_2      /* PB9  */
+#define GPIO_CAN1_RX     GPIO_CAN1_RX_3      /* PD0  */
+#define GPIO_CAN1_TX     GPIO_CAN1_TX_3      /* PD1  */
 
 /* SPI
  *
-
+ * SPI1: OSD (STM32G431 running SW-OSD, MAX7456 compatible)
+ * SPI2: IMUs (LSM6DSOX, optional ICM-42688-P)
+ * SPI3: GD25Q128 flash or microSD card (same chip select)
  */
 
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
 
-//#define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1               /* PA6  */
-//#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1               /* PA7  */
-//#define GPIO_SPI1_SCK    ADJ_SLEW_RATE(GPIO_SPI1_SCK_1) /* PA5 */
+#define GPIO_SPI1_SCK    ADJ_SLEW_RATE(GPIO_SPI1_SCK_1) /* PA5  */
+#define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1               /* PA6  */
+#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_3               /* PD7  */
 
-#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_2               /* PC2  */
-#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_3               /* PC3 */
-#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_5) /* PD3  */
+#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_4) /* PB13 */
+#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1               /* PB14 */
+#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1               /* PB15 */
 
-
+#define GPIO_SPI3_SCK    GPIO_SPI3_SCK_1                /* PB3  */
+#define GPIO_SPI3_MISO   GPIO_SPI3_MISO_1               /* PB4  */
+#define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_4               /* PB5  */
 
 /* I2C
  *
-
- *
+ * I2C1: internal barometer (BMP581 or LPS22HB), SCL1/SDA1 pads
+ * I2C2: external, Extra connector (compass)
  */
 
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_1       /* PB6  */
@@ -423,4 +370,4 @@
 # define PROBE(n,s)
 # define PROBE_MARK(n)
 
-#endif  /*__NUTTX_CONFIG_MICOAIR743_INCLUDE_BOARD_H  */
+#endif  /*__NUTTX_CONFIG_ELARION_H7_INCLUDE_BOARD_H  */

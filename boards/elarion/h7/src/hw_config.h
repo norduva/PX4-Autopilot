@@ -88,21 +88,20 @@
 #define BOOTLOADER_DELAY               5000
 #define INTERFACE_USB                  1
 #define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
-#define BOARD_VBUS                     MK_GPIO_INPUT(GPIO_OTGFS_VBUS)
 
-//#define USE_VBUS_PULL_DOWN
-#define INTERFACE_USART                1
-#define INTERFACE_USART_CONFIG         "/dev/ttyS0,115200"
-/* TODO: replace with the Elarion board ID (APJ_BOARD_ID from the ArduPilot hwdef); 1166 is MicoAir743 */
-#define BOARD_TYPE                     1166
-#define _FLASH_KBYTES                  (*(uint32_t *)0x1FF1E880)
-#define BOARD_FLASH_SECTORS            (15)
-#define BOARD_FLASH_SIZE               (_FLASH_KBYTES * 1024)
+/* VBUS is not routed to the MCU. board_deinit() still reconfigures GPIO_OTGFS_VBUS
+ * as an input, so point it at PD15, which is unconnected on this board. */
+#define BOARD_USB_VBUS_SENSE_DISABLED  1
+#define GPIO_OTGFS_VBUS                /* PD15 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTD|GPIO_PIN15)
+
+#define BOARD_TYPE                     1224
+#define BOARD_FLASH_SECTORS            (14)
+#define BOARD_FLASH_SIZE               (16 * 128 * 1024)
+#define APP_RESERVATION_SIZE           (1 * 128 * 1024) /* last sector holds the parameters */
 
 #define OSC_FREQ                       8
 
-#define BOARD_PIN_LED_ACTIVITY         GPIO_nLED_BLUE // BLUE
-#define BOARD_PIN_LED_BOOTLOADER       GPIO_nLED_GREEN // GREEN
+#define BOARD_PIN_LED_ACTIVITY         GPIO_nLED_BLUE
 #define BOARD_LED_ON                   0
 #define BOARD_LED_OFF                  1
 
@@ -125,9 +124,9 @@
 #endif
 
 #ifndef BOOT_DEVICES_SELECTION
-#  define BOOT_DEVICES_SELECTION USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
+#  define BOOT_DEVICES_SELECTION USB0_DEV
 #endif
 
 #ifndef BOOT_DEVICES_FILTER_ONUSB
-#  define BOOT_DEVICES_FILTER_ONUSB USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
+#  define BOOT_DEVICES_FILTER_ONUSB USB0_DEV
 #endif

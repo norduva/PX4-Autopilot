@@ -47,9 +47,13 @@
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
-#include <nuttx/sdio.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/mmcsd.h>
+#include <nuttx/mtd/mtd.h>
+#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
+#include <stm32_spi.h>
+#include <stm32_uart.h>
 #include "arm_internal.h"
 
 #include <drivers/drv_hrt.h>
@@ -138,6 +142,69 @@ __EXPORT void stm32_boardinitialize(void)
 }
 
 /****************************************************************************
+ * Name: board_storage_initialize
+ *
+ * Description:
+ *   SPI3 / PC11 carries either a GD25Q128 (or W25Q128) flash chip or a microSD
+ *   card, depending on the build. Probe for the flash first and mount it with
+ *   littlefs at the storage root; if no flash answers, bind the microSD card
+ *   to /dev/mmcsd0, which rcS then mounts.
+ *
+ ****************************************************************************/
+static void board_storage_initialize(void)
+{
+	struct spi_dev_s *spi = stm32_spibus_initialize(BOARD_STORAGE_SPI_BUS);
+
+	if (!spi) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI%d for storage\n", BOARD_STORAGE_SPI_BUS);
+		led_on(LED_BLUE);
+		return;
+	}
+
+	struct mtd_dev_s *mtd = NULL;
+
+#if defined(CONFIG_MTD_GD25)
+	mtd = gd25_initialize(spi, 0);
+
+#endif
+
+#if defined(CONFIG_MTD_W25)
+
+	if (!mtd) {
+		mtd = w25_initialize(spi);
+	}
+
+#endif
+
+	if (mtd) {
+		int ret = register_mtddriver("/dev/mtd0", mtd, 0755, NULL);
+
+		if (ret < 0) {
+			syslog(LOG_ERR, "[boot] FAILED to register flash MTD driver: %d\n", ret);
+			led_on(LED_BLUE);
+			return;
+		}
+
+		ret = nx_mount("/dev/mtd0", CONFIG_BOARD_ROOT_PATH, "littlefs", 0, "autoformat");
+
+		if (ret < 0) {
+			syslog(LOG_ERR, "[boot] FAILED to mount littlefs: %d\n", ret);
+			led_on(LED_BLUE);
+		}
+
+		return;
+	}
+
+#if defined(CONFIG_MMCSD_SPI)
+
+	if (mmcsd_spislotinitialize(0, 0, spi) != OK) {
+		syslog(LOG_ERR, "[boot] no flash and no microSD card found\n");
+	}
+
+#endif
+}
+
+/****************************************************************************
  * Name: board_app_initialize
  *
  * Description:
@@ -165,26 +232,22 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
+#if defined(SERIAL_HAVE_RXDMA)
+	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
+	static struct hrt_call serial_dma_call;
+	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
+#endif
+
 	/* initial LED state */
 	drv_led_start();
-	led_off(LED_RED);
 	led_off(LED_BLUE);
 
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_BLUE);
 	}
 
-#ifdef CONFIG_MMCSD
-	int ret = stm32_sdio_initialize();
+	board_storage_initialize();
 
-	if (ret != OK) {
-		led_on(LED_BLUE);
-		return ret;
-	}
-
-#endif
-
-// TODO：internal flash store parameters
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {
 		{15, 128 * 1024, 0x081E0000},
@@ -196,7 +259,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (result != OK) {
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-		led_on(LED_RED);
+		led_on(LED_BLUE);
 	}
 
 #endif

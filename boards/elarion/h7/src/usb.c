@@ -53,13 +53,8 @@
 
 __EXPORT void stm32_usbinitialize(void)
 {
-	/* The OTG FS has an internal soft pull-up */
-
-	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
-
-#ifdef CONFIG_STM32H7_OTGFS
-	stm32_configgpio(GPIO_OTGFS_VBUS);
-#endif
+	/* The OTG FS has an internal soft pull-up. VBUS is not routed to the MCU,
+	 * so there is no sensing GPIO to configure (CONFIG_USBDEV_VBUSSENSING is off). */
 }
 
 /************************************************************************************
@@ -75,4 +70,19 @@ __EXPORT void stm32_usbinitialize(void)
 __EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
 	uinfo("resume: %d\n", resume);
+}
+
+/************************************************************************************
+ * Name:  board_read_VBUS_state
+ *
+ * Description:
+ *   VBUS is not routed to the MCU, so USB is always reported as connected.
+ *
+ * Returned Value:
+ *   0 - connected
+ *
+ ************************************************************************************/
+__EXPORT int board_read_VBUS_state(void)
+{
+	return 0;
 }
