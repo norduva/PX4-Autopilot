@@ -41,12 +41,12 @@
 
 #include <drivers/device/i2c.h>
 
-device::Device *LPS22HB_I2C_interface(int bus, int bus_frequency);
+device::Device *LPS22HB_I2C_interface(int bus, int bus_frequency, int i2c_address);
 
 class LPS22HB_I2C : public device::I2C
 {
 public:
-	LPS22HB_I2C(int bus, int bus_frequency);
+	LPS22HB_I2C(int bus, int bus_frequency, int i2c_address);
 	~LPS22HB_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
@@ -58,13 +58,13 @@ protected:
 };
 
 device::Device *
-LPS22HB_I2C_interface(int bus, int bus_frequency)
+LPS22HB_I2C_interface(int bus, int bus_frequency, int i2c_address)
 {
-	return new LPS22HB_I2C(bus, bus_frequency);
+	return new LPS22HB_I2C(bus, bus_frequency, i2c_address);
 }
 
-LPS22HB_I2C::LPS22HB_I2C(int bus, int bus_frequency) :
-	I2C(DRV_BARO_DEVTYPE_LPS22HB, MODULE_NAME, bus, LPS22HB_ADDRESS, bus_frequency)
+LPS22HB_I2C::LPS22HB_I2C(int bus, int bus_frequency, int i2c_address) :
+	I2C(DRV_BARO_DEVTYPE_LPS22HB, MODULE_NAME, bus, i2c_address, bus_frequency)
 {
 }
 

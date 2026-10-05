@@ -40,6 +40,7 @@ void LPS22HB::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(LPS22HB_ADDRESS);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -48,7 +49,7 @@ I2CSPIDriverBase *LPS22HB::instantiate(const I2CSPIDriverConfig &config, int run
 	device::Device *interface = nullptr;
 
 	if (config.bus_type == BOARD_I2C_BUS) {
-		interface = LPS22HB_I2C_interface(config.bus, config.bus_frequency);
+		interface = LPS22HB_I2C_interface(config.bus, config.bus_frequency, config.i2c_address);
 
 	} else if (config.bus_type == BOARD_SPI_BUS) {
 		interface = LPS22HB_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
@@ -86,6 +87,7 @@ extern "C" __EXPORT int lps22hb_main(int argc, char *argv[])
 	BusCLIArguments cli{true, true};
 	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 10 * 1000 * 1000;
+	cli.i2c_address = LPS22HB_ADDRESS;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
@@ -93,8 +95,6 @@ extern "C" __EXPORT int lps22hb_main(int argc, char *argv[])
 		ThisDriver::print_usage();
 		return -1;
 	}
-
-	cli.i2c_address = LPS22HB_ADDRESS;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_BARO_DEVTYPE_LPS22HB);
 

@@ -76,7 +76,7 @@ static constexpr uint8_t TEMP_OUT_H = 0x2C;
 
 /* interface factories */
 extern device::Device *LPS22HB_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
-extern device::Device *LPS22HB_I2C_interface(int bus, int bus_frequency);
+extern device::Device *LPS22HB_I2C_interface(int bus, int bus_frequency, int i2c_address);
 
 class LPS22HB : public I2CSPIDriver<LPS22HB>
 {
