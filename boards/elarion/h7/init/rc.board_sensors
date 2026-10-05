@@ -1,18 +1,20 @@
 #!/bin/sh
 #
-# board specific sensors init
+# Elarion H7 specific sensors init
 #------------------------------------------------------------------------------
 
 board_adc start
 
-# # Internal SPI bus BMI088 accel/gyro
-bmi088 -s -b 2 -A -R 6 start
-bmi088 -s -b 2 -G -R 6 start
+# Internal SPI bus: LSM6DSOX
+# The chip is mounted upside down (ArduPilot uses its raw axes as the body frame).
+lsm6dso -s -b 2 -R 8 start
 
-# # Internal SPI bus BMI270 accel/gyro
-bmi270 -s -b 2 -R 0 start
+# Internal SPI bus: ICM-42688-P footprint, not fitted on current builds.
+# Check its rotation before flying a board that has it.
+icm42688p -s -b 2 -q start
 
-# Internal baro
-dps310 -I start -a 118
-
-ist8310 -I -R 2 start
+# Internal barometer on I2C1: BMP581 (0x46, preferred) or LPS22HB (0x5C), depending on revision
+if ! bmp581 -I -b 1 -q start
+then
+	lps22hb -I -b 1 -a 0x5C -q start
+fi

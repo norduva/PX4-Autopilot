@@ -1,24 +1,41 @@
 #!/bin/sh
 #
-# board specific defaults
+# Elarion H7 specific defaults
 #------------------------------------------------------------------------------
-param set-default BAT1_A_PER_V 40
-param set-default BAT1_N_CELLS 4
-param set-default BAT1_V_CHARGED 4.2
-param set-default BAT1_V_DIV 21.2
-param set-default BAT1_V_EMPTY 3.2
 
-param set-default SYS_HAS_MAG 1
-param set-default PWM_MAIN_TIM0 -4
-param set-default RC_INPUT_PROTO -1
+# Battery: 10k/1k divider, 4-in-1 ESC current sensor on the ESC connector
+param set-default BAT1_V_DIV 11.0
+param set-default BAT1_A_PER_V 40.0
+param set-default BAT2_V_DIV 11.0
 
-param set-default IMU_GYRO_CUTOFF 80
-param set-default MC_PITCHRATE_K 0.4
-param set-default MC_ROLLRATE_K 0.35
-param set-default MC_YAWRATE_K 1.2
-param set-default MC_YAWRATE_MAX 360
-param set-default MAV_TYPE 2
-param set-default MSP_OSD_CONFIG 102
-param set-default CA_AIRFRAME 0
-param set-default CA_ROTOR_COUNT 4
+# system_power unavailable
 param set-default CBRK_SUPPLY_CHK 894281
+
+# no built-in compass (external ones on the Extra connector are detected)
+param set-default SYS_HAS_MAG 0
+
+param set-default IMU_GYRO_RATEMAX 2000
+
+# CRSF / ELRS receiver on the RX connector, with telemetry
+param set-default RC_CRSF_PRT_CFG 300
+param set-default RC_CRSF_TEL_EN 1
+
+# IRC Tramp VTX on the VTX connector
+param set-default VTX_SER_CFG 6
+param set-default VTX_PROTOCOL 100
+
+# Analog OSD
+param set-default OSD_ATXXXX_CFG 2
+
+# Bidirectional DShot600 on outputs 1-6 (TIM3, TIM5), Bluejay / BLHeli_S extended telemetry
+param set-default PWM_MAIN_TIM0 -6
+param set-default PWM_MAIN_TIM1 -6
+param set-default DSHOT_BIDIR_EDT 1
+
+# 16 MiB flash blackbox (on SD card builds /dev/mtd0 does not exist):
+# small log files so several recent flights fit, and fill up to 95%
+if [ -e /dev/mtd0 ]
+then
+	param set-default SDLOG_MAX_SIZE 4
+	param set-default SDLOG_ROTATE 95
+fi

@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# Elarion H7 early init
+#
+# On flash builds init.c has already mounted the GD25Q128 / W25Q128 (littlefs)
+# at the storage root, so rcS must not look for a microSD card.
+#------------------------------------------------------------------------------
+
+if [ -e /dev/mtd0 ]
+then
+	set STORAGE_CHECK no
+	set STORAGE_AVAILABLE yes
+fi

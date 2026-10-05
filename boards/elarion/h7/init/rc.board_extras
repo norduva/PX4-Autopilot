@@ -1,7 +1,11 @@
 #!/bin/sh
 #
-# board specific extras init
+# Elarion H7 specific extras init
 #------------------------------------------------------------------------------
 
-# enable onboard OSD chip
-# atxxxx start -s
+# Analog OSD: STM32G431 running SW-OSD (MAX7456 compatible) on SPI1.
+# Clocked at 1 MHz, the rate the ArduPilot and Betaflight targets use for it.
+if param greater OSD_ATXXXX_CFG 0
+then
+	atxxxx -s -f 1000 start
+fi
