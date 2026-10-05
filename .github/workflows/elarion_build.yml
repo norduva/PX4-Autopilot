@@ -6,10 +6,10 @@
 # artifacts for 7 days. Pushing a release tag also creates a draft GitHub
 # Release with the files attached.
 #
-# Release tags use PX4's custom version format, v<PX4 version>-<Elarion version>,
-# e.g. v1.18.0-1.0.0 or v1.18.0-1.1.0-rc1. The firmware reports that version to
-# QGroundControl. Upstream PX4 tags (v1.18.0, v1.18.0-rc1, ...) do not match
-# the trigger, so pushing them never starts a release.
+# Release tags are Elarion's: v<PX4 version>-beta for a pre-release (v1.18.0-beta)
+# and v<PX4 version><letter> for a release (v1.18.0a, v1.18.0b, ...).
+# Upstream PX4 tags (v1.18.0, v1.18.0-beta1, v1.18.0-rc1, ...) do not match the
+# trigger, so pushing them never starts a release.
 
 name: Elarion firmware
 
@@ -18,7 +18,8 @@ on:
     branches:
       - '**'
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+.[0-9]+*'
+      - 'v[0-9]+.[0-9]+.[0-9]+-beta'
+      - 'v[0-9]+.[0-9]+.[0-9]+[a-z]'
     paths-ignore:
       - 'docs/**'
       - '**.md'
