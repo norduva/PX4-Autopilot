@@ -13,6 +13,14 @@ menuconfig USER_DATAMAN
 		Put dataman in userspace memory
 
 
+menuconfig DATAMAN_STACK_SIZE
+	int "stack size of dataman task"
+	default 2000
+	depends on MODULES_DATAMAN
+	---help---
+		Stack size of the dataman task. File systems with deeper call
+		chains (e.g. littlefs on SPI flash) need more than the default.
+
 menuconfig DATAMAN_PERSISTENT_STORAGE
 	bool "dataman supports persistent storage"
 	default y
