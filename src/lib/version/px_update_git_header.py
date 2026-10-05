@@ -59,20 +59,24 @@ if validate:
     # remove optional -<num_commits>-g<commit_hash> at the end (in case we are not on a tagged commit)
     git_tag_test = re.sub(r'-[0-9]+-g[0-9a-fA-F]+$', '', git_tag_test)
     # now check the version format
-    m = re.match(r'v([0-9]+)\.([0-9]+)\.[0-9]+(((-dev)|(-alpha[0-9]+)|(-beta[0-9]+)|(-rc[0-9]+))|'\
+    # Elarion: also accept a bare -beta (v1.18.0-beta) and a single letter release suffix
+    # (v1.18.0a). p, t and v are excluded: version_tag_to_number() reads them as alpha, beta and dev.
+    m = re.match(r'v([0-9]+)\.([0-9]+)\.[0-9]+(((-dev)|(-alpha[0-9]+)|(-beta[0-9]*)|(-rc[0-9]+)|([a-oqrsuw-z]))|'\
                  r'(-[0-9]+\.[0-9]+\.[0-9]+((-dev)|(-alpha[0-9]+)|(-beta[0-9]+)|([-]?rc[0-9]+))?))?$', git_tag_test)
     if not m:
         print("")
         print("Error: the git tag '{:}' does not match the expected format.".format(git_tag_test))
         print("")
         print("The expected format is 'v<PX4 version>[-<custom version>]'")
-        print("  <PX4 version>: v<major>.<minor>.<patch>[-rc<rc>|-beta<beta>|-alpha<alpha>|-dev]")
+        print("  <PX4 version>: v<major>.<minor>.<patch>[-rc<rc>|-beta[<beta>]|-alpha<alpha>|-dev|<letter>]")
         print("  <custom version>: <major>.<minor>.<patch>[-rc<rc>|-beta<beta>|-alpha<alpha>|-dev]")
         print("Examples:")
         print("  v1.9.0-rc3 (preferred)")
         print("  v1.9.0-beta1")
         print("  v1.9.0-1.0.0")
         print("  v1.9.0-1.0.0-alpha2")
+        print("  v1.18.0-beta")
+        print("  v1.18.0a")
         print("See also https://docs.px4.io/main/en/dev_setup/building_px4.html#building-for-nuttx")
         print("")
         sys.exit(1)
