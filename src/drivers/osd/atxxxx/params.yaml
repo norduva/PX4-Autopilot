@@ -15,3 +15,27 @@ parameters:
         2: PAL
       default: 0
       reboot_required: true
+    OSD_MVLQ_EN:
+      description:
+        short: Show Multiversity link statistics
+        long: |-
+          Show the per-radio link statistics a Multiversity CRSF combiner
+          publishes on RC channels 11-16 (as PWM = value + 1000): one row each
+          for the 400, 800 and 2.4 radios with RSSI and SNR.
+      type: boolean
+      default: 0
+    OSD_MVLQ_X:
+      description:
+        short: Multiversity link statistics column
+      type: int32
+      min: 0
+      max: 19
+      default: 1
+    OSD_MVLQ_Y:
+      description:
+        short: Multiversity link statistics row
+        long: First of the three rows.
+      type: int32
+      min: 0
+      max: 13
+      default: 6

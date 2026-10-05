@@ -41,6 +41,7 @@
  */
 #include <drivers/device/spi.h>
 #include <drivers/drv_hrt.h>
+#include <lib/mathlib/mathlib.h>
 #include <parameters/param.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
@@ -49,6 +50,8 @@
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/input_rc.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -97,6 +100,8 @@ private:
 	int add_battery_info(uint8_t pos_x, uint8_t pos_y);
 	int add_altitude(uint8_t pos_x, uint8_t pos_y);
 	int add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y);
+	int add_multiversity_lq(uint8_t pos_x, uint8_t pos_y);
+	void clear_multiversity_lq();
 
 	static const char *get_flight_mode(uint8_t nav_state);
 
@@ -109,6 +114,8 @@ private:
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	// battery
 	float _battery_voltage_v{0.f};
@@ -127,7 +134,21 @@ private:
 	// flight mode
 	uint8_t _nav_state{0};
 
+	// Multiversity link statistics: RSSI / SNR pairs on RC channels 11-16
+	static constexpr uint8_t MVLQ_RADIOS{3};
+	static constexpr uint8_t MVLQ_FIRST_CHANNEL{10}; // channel 11, zero based
+	static constexpr int MVLQ_PWM_OFFSET{1000};
+	static constexpr int MVLQ_ROW_LENGTH{11}; // "2.4 138   0"
+	int16_t _mvlq_value[MVLQ_RADIOS * 2] {};
+	bool _mvlq_valid{false};
+	bool _mvlq_drawn{false};
+	uint8_t _mvlq_drawn_x{0};
+	uint8_t _mvlq_drawn_y{0};
+
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_osd_atxxxx_cfg
+		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_osd_atxxxx_cfg,
+		(ParamBool<px4::params::OSD_MVLQ_EN>) _param_osd_mvlq_en,
+		(ParamInt<px4::params::OSD_MVLQ_X>) _param_osd_mvlq_x,
+		(ParamInt<px4::params::OSD_MVLQ_Y>) _param_osd_mvlq_y
 	)
 };

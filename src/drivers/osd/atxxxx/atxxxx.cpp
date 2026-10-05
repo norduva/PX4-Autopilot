@@ -318,6 +318,36 @@ OSDatxxxx::add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y)
 }
 
 int
+OSDatxxxx::add_multiversity_lq(uint8_t pos_x, uint8_t pos_y)
+{
+	static constexpr const char *labels[MVLQ_RADIOS] {"400", "800", "2.4"};
+
+	char buf[16];
+	int ret = PX4_OK;
+
+	for (uint8_t i = 0; i < MVLQ_RADIOS; i++) {
+		snprintf(buf, sizeof(buf), "%s %3d %3d", labels[i], _mvlq_value[i * 2], _mvlq_value[i * 2 + 1]);
+		buf[sizeof(buf) - 1] = '\0';
+
+		for (int c = 0; buf[c] != '\0'; c++) {
+			ret |= add_character_to_screen(buf[c], pos_x + c, pos_y + i);
+		}
+	}
+
+	return ret;
+}
+
+void
+OSDatxxxx::clear_multiversity_lq()
+{
+	for (uint8_t i = 0; i < MVLQ_RADIOS; i++) {
+		clear_line(_mvlq_drawn_x, _mvlq_drawn_y + i, MVLQ_ROW_LENGTH);
+	}
+
+	_mvlq_drawn = false;
+}
+
+int
 OSDatxxxx::enable_screen()
 {
 	uint8_t data = 0;
@@ -369,6 +399,21 @@ OSDatxxxx::update_topics()
 
 		if (_local_position_valid) {
 			_local_position_z = -local_position.z;
+		}
+	}
+
+	/* update RC input subscription (Multiversity link statistics) */
+	if (_input_rc_sub.updated()) {
+		input_rc_s input_rc{};
+		_input_rc_sub.copy(&input_rc);
+
+		_mvlq_valid = !input_rc.rc_lost && (input_rc.channel_count >= MVLQ_FIRST_CHANNEL + MVLQ_RADIOS * 2);
+
+		if (_mvlq_valid) {
+			for (uint8_t i = 0; i < MVLQ_RADIOS * 2; i++) {
+				// values are 0-999 on the wire; clamp so a row never grows past MVLQ_ROW_LENGTH
+				_mvlq_value[i] = math::constrain(input_rc.values[MVLQ_FIRST_CHANNEL + i] - MVLQ_PWM_OFFSET, -99, 999);
+			}
 		}
 	}
 
@@ -489,6 +534,22 @@ OSDatxxxx::update_screen()
 
 	add_string_to_screen_centered(flight_mode, 12, 10);
 
+	const uint8_t mvlq_x = _param_osd_mvlq_x.get();
+	const uint8_t mvlq_y = _param_osd_mvlq_y.get();
+
+	// erase the element where it was last drawn if it moved, was disabled or lost its data
+	if (_mvlq_drawn && (!_param_osd_mvlq_en.get() || !_mvlq_valid
+			    || mvlq_x != _mvlq_drawn_x || mvlq_y != _mvlq_drawn_y)) {
+		clear_multiversity_lq();
+	}
+
+	if (_param_osd_mvlq_en.get() && _mvlq_valid) {
+		ret |= add_multiversity_lq(mvlq_x, mvlq_y);
+		_mvlq_drawn = true;
+		_mvlq_drawn_x = mvlq_x;
+		_mvlq_drawn_y = mvlq_y;
+	}
+
 	return ret;
 }
 
@@ -507,6 +568,12 @@ OSDatxxxx::RunImpl()
 	if (should_exit()) {
 		exit_and_cleanup();
 		return;
+	}
+
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+		updateParams();
 	}
 
 	update_topics();

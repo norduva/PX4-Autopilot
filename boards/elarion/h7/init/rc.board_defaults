@@ -26,6 +26,7 @@ param set-default VTX_PROTOCOL 100
 
 # Analog OSD
 param set-default OSD_ATXXXX_CFG 2
+param set-default OSD_MVLQ_EN 1
 
 # Bidirectional DShot600 on outputs 1-6 (TIM3, TIM5), Bluejay / BLHeli_S extended telemetry
 param set-default PWM_MAIN_TIM0 -6
