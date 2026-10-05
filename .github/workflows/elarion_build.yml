@@ -3,8 +3,8 @@
 # The upstream PX4 workflows are removed on this fork; this is the only CI.
 #
 # Every branch push builds firmware + bootloader and keeps them as workflow
-# artifacts for 7 days. Pushing a release tag also creates a draft GitHub
-# Release with the files attached.
+# artifacts for 7 days. Pushing a release tag also publishes a GitHub Release
+# with the files attached and no release notes.
 #
 # Release tags are Elarion's: v<PX4 version>-beta for a pre-release (v1.18.0-beta)
 # and v<PX4 version><letter> for a release (v1.18.0a, v1.18.0b, ...).
@@ -94,7 +94,7 @@ jobs:
           retention-days: 7
 
   release:
-    name: Draft GitHub Release
+    name: GitHub Release
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
@@ -109,6 +109,6 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          draft: false
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
           files: artifacts/*
